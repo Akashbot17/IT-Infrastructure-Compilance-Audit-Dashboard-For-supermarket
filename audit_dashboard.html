@@ -1,0 +1,1060 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VeriLedger — Supermarket IT Audit Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg-base: #080d1a;
+    --bg-surface: #0d1526;
+    --bg-card: #111d35;
+    --bg-card2: #0f1a2e;
+    --border: rgba(99,155,255,0.10);
+    --border-bright: rgba(99,155,255,0.22);
+    --accent: #3b82f6;
+    --accent2: #06d6a0;
+    --accent3: #f59e0b;
+    --accent4: #ef4444;
+    --accent5: #a78bfa;
+    --text-primary: #e8edf8;
+    --text-secondary: #7b90bb;
+    --text-muted: #3d5280;
+    --sidebar-w: 240px;
+    --header-h: 68px;
+    --radius: 14px;
+    --radius-sm: 8px;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg-base);
+    color: var(--text-primary);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ─── SIDEBAR ───────────────────────────────────── */
+  .sidebar {
+    position: fixed; top: 0; left: 0;
+    width: var(--sidebar-w); height: 100vh;
+    background: var(--bg-surface);
+    border-right: 1px solid var(--border);
+    display: flex; flex-direction: column;
+    z-index: 100;
+    transition: transform 0.3s ease;
+  }
+
+  .sidebar-logo {
+    padding: 22px 24px 18px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 10px;
+  }
+  .logo-icon {
+    width: 36px; height: 36px;
+    background: linear-gradient(135deg, var(--accent), var(--accent5));
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Syne', sans-serif;
+    font-weight: 800; font-size: 15px;
+    color: #fff;
+    box-shadow: 0 0 18px rgba(59,130,246,0.35);
+  }
+  .logo-text { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 17px; }
+  .logo-text span { color: var(--accent); }
+
+  .sidebar-section-label {
+    font-size: 10px; font-weight: 600; letter-spacing: 0.12em;
+    color: var(--text-muted); text-transform: uppercase;
+    padding: 20px 24px 8px;
+  }
+
+  .nav-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 11px 20px; margin: 2px 10px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    color: var(--text-secondary);
+    font-size: 14px; font-weight: 500;
+    transition: all 0.2s ease;
+    position: relative;
+  }
+  .nav-item:hover { background: rgba(59,130,246,0.08); color: var(--text-primary); }
+  .nav-item.active {
+    background: rgba(59,130,246,0.14);
+    color: var(--accent);
+  }
+  .nav-item.active::before {
+    content: ''; position: absolute; left: -10px; top: 50%; transform: translateY(-50%);
+    width: 3px; height: 60%; background: var(--accent);
+    border-radius: 0 3px 3px 0;
+  }
+  .nav-icon { font-size: 17px; width: 22px; text-align: center; }
+  .nav-badge {
+    margin-left: auto; background: var(--accent4);
+    color: #fff; font-size: 10px; font-weight: 700;
+    padding: 2px 7px; border-radius: 20px; min-width: 20px; text-align: center;
+  }
+  .nav-badge.warn { background: var(--accent3); color: #000; }
+
+  .sidebar-footer {
+    margin-top: auto; padding: 16px 20px;
+    border-top: 1px solid var(--border);
+  }
+  .user-chip {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 12px;
+    background: var(--bg-card);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+  }
+  .user-avatar {
+    width: 32px; height: 32px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent5), var(--accent));
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 13px;
+  }
+  .user-info { flex: 1; }
+  .user-name { font-size: 13px; font-weight: 600; }
+  .user-role { font-size: 11px; color: var(--text-muted); }
+
+  /* ─── MAIN ───────────────────────────────────────── */
+  .main-wrap {
+    margin-left: var(--sidebar-w);
+    min-height: 100vh;
+    display: flex; flex-direction: column;
+  }
+
+  /* ─── HEADER ─────────────────────────────────────── */
+  .header {
+    height: var(--header-h);
+    background: rgba(13,21,38,0.92);
+    backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 16px;
+    padding: 0 28px;
+    position: sticky; top: 0; z-index: 50;
+  }
+  .header-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 18px; font-weight: 700;
+    margin-right: auto;
+  }
+  .header-title span { color: var(--text-muted); font-weight: 400; font-size: 13px; margin-left: 8px; font-family: 'DM Sans', sans-serif; }
+
+  .filter-group { display: flex; align-items: center; gap: 10px; }
+  .filter-select {
+    background: var(--bg-card);
+    border: 1px solid var(--border-bright);
+    color: var(--text-secondary);
+    border-radius: var(--radius-sm);
+    padding: 7px 30px 7px 12px;
+    font-size: 13px; font-family: 'DM Sans', sans-serif;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' fill='none'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%237b90bb' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    cursor: pointer;
+    transition: border-color 0.2s;
+  }
+  .filter-select:focus { outline: none; border-color: var(--accent); }
+
+  .btn-refresh {
+    background: linear-gradient(135deg, var(--accent), #2563eb);
+    border: none; color: #fff;
+    padding: 8px 18px; border-radius: var(--radius-sm);
+    font-size: 13px; font-weight: 600; font-family: 'DM Sans', sans-serif;
+    cursor: pointer;
+    box-shadow: 0 0 16px rgba(59,130,246,0.3);
+    transition: all 0.2s;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .btn-refresh:hover { transform: translateY(-1px); box-shadow: 0 0 24px rgba(59,130,246,0.5); }
+
+  .status-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--accent2);
+    box-shadow: 0 0 8px var(--accent2);
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.6;transform:scale(1.2)} }
+
+  /* ─── CONTENT ────────────────────────────────────── */
+  .content { padding: 28px; flex: 1; }
+
+  .section { display: none; animation: fadeIn 0.3s ease; }
+  .section.active { display: block; }
+  @keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+
+  /* ─── KPI CARDS ──────────────────────────────────── */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 16px; margin-bottom: 24px;
+  }
+  .kpi-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    position: relative; overflow: hidden;
+    transition: all 0.25s ease;
+    cursor: default;
+  }
+  .kpi-card::before {
+    content: ''; position: absolute;
+    top: 0; left: 0; right: 0; height: 2px;
+    background: var(--kpi-accent, var(--accent));
+  }
+  .kpi-card:hover {
+    border-color: var(--border-bright);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+  }
+  .kpi-label { font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 10px; }
+  .kpi-value { font-family: 'Syne', sans-serif; font-size: 26px; font-weight: 800; line-height: 1; }
+  .kpi-sub { font-size: 11px; color: var(--text-muted); margin-top: 6px; }
+  .kpi-sub .up { color: var(--accent2); }
+  .kpi-sub .down { color: var(--accent4); }
+  .kpi-icon {
+    position: absolute; right: 16px; top: 16px;
+    font-size: 22px; opacity: 0.2;
+  }
+
+  /* ─── CHART GRID ─────────────────────────────────── */
+  .chart-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr;
+    gap: 16px; margin-bottom: 24px;
+  }
+  .chart-grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px; margin-bottom: 24px;
+  }
+
+  .card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 22px;
+    transition: border-color 0.25s;
+  }
+  .card:hover { border-color: var(--border-bright); }
+
+  .card-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 18px;
+  }
+  .card-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 14px; font-weight: 700;
+  }
+  .card-subtitle { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+  .card-badge {
+    font-size: 11px; font-weight: 600;
+    padding: 3px 10px; border-radius: 20px;
+  }
+  .badge-blue { background: rgba(59,130,246,0.15); color: var(--accent); }
+  .badge-green { background: rgba(6,214,160,0.15); color: var(--accent2); }
+  .badge-red { background: rgba(239,68,68,0.15); color: var(--accent4); }
+  .badge-yellow { background: rgba(245,158,11,0.15); color: var(--accent3); }
+
+  canvas { width: 100% !important; }
+
+  /* ─── ANOMALY STRIP ──────────────────────────────── */
+  .anomaly-strip {
+    background: linear-gradient(135deg, rgba(239,68,68,0.08), rgba(245,158,11,0.06));
+    border: 1px solid rgba(239,68,68,0.2);
+    border-radius: var(--radius);
+    padding: 14px 20px;
+    margin-bottom: 24px;
+    display: flex; align-items: center; gap: 16px;
+    flex-wrap: wrap;
+  }
+  .anomaly-title { font-size: 12px; font-weight: 700; color: var(--accent4); display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+  .anomaly-item {
+    background: rgba(239,68,68,0.1);
+    border: 1px solid rgba(239,68,68,0.18);
+    border-radius: 6px;
+    padding: 5px 12px;
+    font-size: 12px; color: var(--text-secondary);
+  }
+  .anomaly-item strong { color: var(--accent4); }
+
+  /* ─── TABLE ──────────────────────────────────────── */
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead th {
+    text-align: left;
+    font-size: 10px; font-weight: 700; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--text-muted);
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  tbody tr {
+    border-bottom: 1px solid rgba(99,155,255,0.05);
+    transition: background 0.15s;
+  }
+  tbody tr:hover { background: rgba(59,130,246,0.04); }
+  tbody td { padding: 12px 14px; color: var(--text-secondary); }
+  tbody td:first-child { color: var(--text-primary); font-weight: 500; }
+
+  .status-pill {
+    display: inline-block;
+    padding: 3px 10px; border-radius: 20px;
+    font-size: 11px; font-weight: 700;
+  }
+  .s-approved { background: rgba(6,214,160,0.12); color: var(--accent2); }
+  .s-flagged { background: rgba(239,68,68,0.12); color: var(--accent4); }
+  .s-review { background: rgba(245,158,11,0.12); color: var(--accent3); }
+
+  .risk-bar-wrap { display: flex; align-items: center; gap: 8px; }
+  .risk-bar { height: 6px; border-radius: 3px; flex: 1; background: var(--bg-base); overflow: hidden; }
+  .risk-fill { height: 100%; border-radius: 3px; }
+
+  /* ─── RISK SECTION ───────────────────────────────── */
+  .risk-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+  .risk-card {
+    border-radius: var(--radius);
+    padding: 22px;
+    border: 1px solid;
+  }
+  .risk-high { background: rgba(239,68,68,0.07); border-color: rgba(239,68,68,0.2); }
+  .risk-med { background: rgba(245,158,11,0.07); border-color: rgba(245,158,11,0.2); }
+  .risk-low { background: rgba(6,214,160,0.07); border-color: rgba(6,214,160,0.2); }
+  .risk-card-label { font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 10px; }
+  .risk-high .risk-card-label { color: var(--accent4); }
+  .risk-med .risk-card-label { color: var(--accent3); }
+  .risk-low .risk-card-label { color: var(--accent2); }
+  .risk-count { font-family: 'Syne', sans-serif; font-size: 40px; font-weight: 800; }
+  .risk-detail { font-size: 12px; color: var(--text-muted); margin-top: 6px; }
+
+  /* ─── AUDIT REPORTS ──────────────────────────────── */
+  .finding-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    margin-bottom: 14px;
+    border-left: 4px solid;
+    transition: all 0.2s;
+  }
+  .finding-card:hover { border-color: var(--border-bright); transform: translateX(2px); }
+  .finding-critical { border-left-color: var(--accent4); }
+  .finding-major { border-left-color: var(--accent3); }
+  .finding-minor { border-left-color: var(--accent); }
+  .finding-header { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+  .finding-id { font-size: 11px; font-family: 'Syne', sans-serif; font-weight: 700; color: var(--text-muted); }
+  .finding-title { font-size: 14px; font-weight: 600; flex: 1; }
+  .finding-body { font-size: 13px; color: var(--text-muted); line-height: 1.6; margin-bottom: 10px; }
+  .finding-rec { font-size: 12px; color: var(--accent2); }
+  .finding-rec::before { content: '→ '; }
+
+  /* ─── SETTINGS ────────────────────────────────────── */
+  .settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .setting-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .setting-row:last-child { border-bottom: none; }
+  .setting-label { font-size: 13px; font-weight: 500; }
+  .setting-desc { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+  .toggle {
+    width: 40px; height: 22px; background: var(--bg-base);
+    border-radius: 11px; cursor: pointer; position: relative;
+    border: 1px solid var(--border-bright); transition: background 0.2s;
+  }
+  .toggle.on { background: var(--accent); border-color: var(--accent); }
+  .toggle::after {
+    content: ''; position: absolute; top: 3px; left: 3px;
+    width: 14px; height: 14px; border-radius: 50%;
+    background: var(--text-muted); transition: all 0.2s;
+  }
+  .toggle.on::after { left: 21px; background: #fff; }
+
+  /* ─── HEATMAP ────────────────────────────────────── */
+  .heatmap { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; }
+  .hm-cell {
+    aspect-ratio: 1; border-radius: 4px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px; font-weight: 600; cursor: default;
+    transition: transform 0.15s;
+  }
+  .hm-cell:hover { transform: scale(1.15); }
+  .hm-day { font-size: 10px; color: var(--text-muted); text-align: center; padding-bottom: 2px; }
+
+  /* ─── SCROLLBAR ──────────────────────────────────── */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border-bright); border-radius: 3px; }
+
+  @media (max-width: 1200px) {
+    .kpi-grid { grid-template-columns: repeat(3, 1fr); }
+    .chart-grid { grid-template-columns: 1fr 1fr; }
+    .risk-grid { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-icon">VL</div>
+    <div class="logo-text">Veri<span>Ledger</span></div>
+  </div>
+
+  <div class="sidebar-section-label">Main Menu</div>
+
+  <div class="nav-item active" onclick="navigate('dashboard', this)">
+    <span class="nav-icon">📊</span> Dashboard
+  </div>
+  <div class="nav-item" onclick="navigate('transactions', this)">
+    <span class="nav-icon">💳</span> Transactions
+    <span class="nav-badge warn">12</span>
+  </div>
+  <div class="nav-item" onclick="navigate('risk', this)">
+    <span class="nav-icon">🛡️</span> Risk Management
+    <span class="nav-badge">7</span>
+  </div>
+  <div class="nav-item" onclick="navigate('reports', this)">
+    <span class="nav-icon">📋</span> Audit Reports
+  </div>
+
+  <div class="sidebar-section-label" style="margin-top:auto">System</div>
+
+  <div class="nav-item" onclick="navigate('settings', this)">
+    <span class="nav-icon">⚙️</span> Settings
+  </div>
+
+  <div class="sidebar-footer">
+    <div class="user-chip">
+      <div class="user-avatar">AL</div>
+      <div class="user-info">
+        <div class="user-name">Akash L K</div>
+        <div class="user-role">Lead Auditor</div>
+      </div>
+      <span style="color:var(--text-muted);font-size:16px;cursor:pointer">⋯</span>
+    </div>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<div class="main-wrap">
+
+  <!-- HEADER -->
+  <header class="header">
+    <div class="header-title" id="page-title">
+      Dashboard <span>Overview · Apr 2026</span>
+    </div>
+    <div class="filter-group">
+      <select class="filter-select" onchange="applyFilter()">
+        <option>All Categories</option>
+        <option>Produce</option>
+        <option>Dairy</option>
+        <option>Bakery</option>
+        <option>Beverages</option>
+        <option>Frozen</option>
+        <option>Meat</option>
+      </select>
+      <select class="filter-select" onchange="applyFilter()">
+        <option>All Payments</option>
+        <option>Cash</option>
+        <option>Card</option>
+        <option>UPI</option>
+        <option>Wallet</option>
+      </select>
+      <select class="filter-select" onchange="applyFilter()">
+        <option>Last 30 Days</option>
+        <option>Last 7 Days</option>
+        <option>This Quarter</option>
+        <option>YTD</option>
+      </select>
+    </div>
+    <div class="status-dot" title="Live data"></div>
+    <button class="btn-refresh" onclick="refreshData()">↻ Refresh</button>
+  </header>
+
+  <!-- CONTENT -->
+  <div class="content">
+
+    <!-- ── DASHBOARD ── -->
+    <div class="section active" id="sec-dashboard">
+
+      <!-- KPI -->
+      <div class="kpi-grid">
+        <div class="kpi-card" style="--kpi-accent:var(--accent)">
+          <span class="kpi-icon">💰</span>
+          <div class="kpi-label">Total Sales</div>
+          <div class="kpi-value">₹48.7L</div>
+          <div class="kpi-sub"><span class="up">↑ 8.4%</span> vs last period</div>
+        </div>
+        <div class="kpi-card" style="--kpi-accent:var(--accent2)">
+          <span class="kpi-icon">🔢</span>
+          <div class="kpi-label">Total Transactions</div>
+          <div class="kpi-value">12,481</div>
+          <div class="kpi-sub"><span class="up">↑ 3.1%</span> this month</div>
+        </div>
+        <div class="kpi-card" style="--kpi-accent:var(--accent4)">
+          <span class="kpi-icon">⚠️</span>
+          <div class="kpi-label">High Risk Count</div>
+          <div class="kpi-value" style="color:var(--accent4)">34</div>
+          <div class="kpi-sub"><span class="down">↑ 5</span> new today</div>
+        </div>
+        <div class="kpi-card" style="--kpi-accent:var(--accent3)">
+          <span class="kpi-icon">♻️</span>
+          <div class="kpi-label">Duplicate Txns</div>
+          <div class="kpi-value" style="color:var(--accent3)">7</div>
+          <div class="kpi-sub"><span class="down">Flagged</span> for review</div>
+        </div>
+        <div class="kpi-card" style="--kpi-accent:var(--accent5)">
+          <span class="kpi-icon">⏳</span>
+          <div class="kpi-label">Pending Approvals</div>
+          <div class="kpi-value" style="color:var(--accent5)">19</div>
+          <div class="kpi-sub">Requires action</div>
+        </div>
+      </div>
+
+      <!-- Anomaly Alert -->
+      <div class="anomaly-strip">
+        <div class="anomaly-title">🚨 Anomaly Alerts</div>
+        <div class="anomaly-item"><strong>TXN-4421</strong> · ₹2.1L single-scan — Unusual</div>
+        <div class="anomaly-item"><strong>TXN-4398, 4401</strong> · Duplicate entries · ₹18,400</div>
+        <div class="anomaly-item"><strong>Bakery</strong> · 3× above avg sales spike</div>
+        <div class="anomaly-item"><strong>UPI</strong> · 14 failed retries in 10 min</div>
+      </div>
+
+      <!-- Charts Row 1 -->
+      <div class="chart-grid">
+        <div class="card">
+          <div class="card-header">
+            <div><div class="card-title">Sales by Category</div><div class="card-subtitle">Revenue breakdown · Apr 2026</div></div>
+            <span class="card-badge badge-blue">Bar Chart</span>
+          </div>
+          <canvas id="barChart" height="220"></canvas>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <div><div class="card-title">Payment Distribution</div><div class="card-subtitle">By method</div></div>
+            <span class="card-badge badge-green">Doughnut</span>
+          </div>
+          <canvas id="doughnutChart" height="220"></canvas>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <div><div class="card-title">Risk Distribution</div><div class="card-subtitle">Severity levels</div></div>
+            <span class="card-badge badge-red">Risk</span>
+          </div>
+          <canvas id="riskChart" height="220"></canvas>
+        </div>
+      </div>
+
+      <!-- Charts Row 2 -->
+      <div class="chart-grid-2">
+        <div class="card">
+          <div class="card-header">
+            <div><div class="card-title">Sales Trend</div><div class="card-subtitle">Daily sales over 30 days</div></div>
+            <span class="card-badge badge-blue">Line</span>
+          </div>
+          <canvas id="lineChart" height="160"></canvas>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <div><div class="card-title">Risk Heatmap</div><div class="card-subtitle">Transaction risk by day & time</div></div>
+            <span class="card-badge badge-red">Heatmap</span>
+          </div>
+          <div id="heatmapArea"></div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ── TRANSACTIONS ── -->
+    <div class="section" id="sec-transactions">
+      <div class="card">
+        <div class="card-header">
+          <div><div class="card-title">Transaction Ledger</div><div class="card-subtitle">All transactions with audit flags</div></div>
+          <span class="card-badge badge-red">12 Flagged</span>
+        </div>
+        <div class="table-wrap">
+          <table id="txn-table">
+            <thead>
+              <tr>
+                <th>Txn ID</th>
+                <th>Product</th>
+                <th>Category</th>
+                <th>Amount (₹)</th>
+                <th>Payment</th>
+                <th>Cashier</th>
+                <th>Time</th>
+                <th>Risk Score</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="txn-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── RISK MANAGEMENT ── -->
+    <div class="section" id="sec-risk">
+      <div class="risk-grid">
+        <div class="risk-card risk-high">
+          <div class="risk-card-label">High Risk</div>
+          <div class="risk-count" style="color:var(--accent4)">34</div>
+          <div class="risk-detail">Score ≥ 75 · Immediate review needed</div>
+        </div>
+        <div class="risk-card risk-med">
+          <div class="risk-card-label">Medium Risk</div>
+          <div class="risk-count" style="color:var(--accent3)">87</div>
+          <div class="risk-detail">Score 40–74 · Monitor closely</div>
+        </div>
+        <div class="risk-card risk-low">
+          <div class="risk-card-label">Low Risk</div>
+          <div class="risk-count" style="color:var(--accent2)">12,360</div>
+          <div class="risk-detail">Score &lt; 40 · Routine processing</div>
+        </div>
+      </div>
+
+      <div class="chart-grid-2">
+        <div class="card">
+          <div class="card-header">
+            <div><div class="card-title">Risk Score Distribution</div></div>
+            <span class="card-badge badge-red">Analysis</span>
+          </div>
+          <canvas id="riskDistChart" height="220"></canvas>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <div><div class="card-title">Risk Scoring Logic</div><div class="card-subtitle">Score criteria applied</div></div>
+          </div>
+          <div style="margin-top:4px">
+            <div class="setting-row">
+              <div><div class="setting-label">Transaction value &gt; ₹50,000</div><div class="setting-desc">Triggers high-value flag</div></div>
+              <span class="card-badge badge-red">+40 pts</span>
+            </div>
+            <div class="setting-row">
+              <div><div class="setting-label">Duplicate entry detected</div><div class="setting-desc">Same amount + cashier ±5 min</div></div>
+              <span class="card-badge badge-red">+35 pts</span>
+            </div>
+            <div class="setting-row">
+              <div><div class="setting-label">Off-hours transaction</div><div class="setting-desc">Between 22:00 – 06:00</div></div>
+              <span class="card-badge badge-yellow">+25 pts</span>
+            </div>
+            <div class="setting-row">
+              <div><div class="setting-label">Failed payment retry &gt;3</div><div class="setting-desc">Same card/UPI in session</div></div>
+              <span class="card-badge badge-yellow">+20 pts</span>
+            </div>
+            <div class="setting-row">
+              <div><div class="setting-label">New supplier invoice</div><div class="setting-desc">No prior transaction history</div></div>
+              <span class="card-badge badge-blue">+15 pts</span>
+            </div>
+            <div class="setting-row" style="border:none">
+              <div><div class="setting-label">Category spike &gt;200%</div><div class="setting-desc">vs 7-day rolling average</div></div>
+              <span class="card-badge badge-blue">+10 pts</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── AUDIT REPORTS ── -->
+    <div class="section" id="sec-reports">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+        <div>
+          <div style="font-family:'Syne',sans-serif;font-size:20px;font-weight:800">Audit Findings</div>
+          <div style="font-size:12px;color:var(--text-muted);margin-top:2px">Period: Q1 2026 · FreshMart Supermarket Chain</div>
+        </div>
+        <div style="display:flex;gap:10px">
+          <span class="card-badge badge-red">3 Critical</span>
+          <span class="card-badge badge-yellow">5 Major</span>
+          <span class="card-badge badge-blue">8 Minor</span>
+        </div>
+      </div>
+
+      <div id="findings-list"></div>
+    </div>
+
+    <!-- ── SETTINGS ── -->
+    <div class="section" id="sec-settings">
+      <div class="settings-grid">
+        <div class="card">
+          <div class="card-header"><div class="card-title">Alert Thresholds</div></div>
+          <div class="setting-row">
+            <div><div class="setting-label">High-value alert</div><div class="setting-desc">Trigger above ₹50,000</div></div>
+            <div class="toggle on" onclick="this.classList.toggle('on')"></div>
+          </div>
+          <div class="setting-row">
+            <div><div class="setting-label">Duplicate detection</div><div class="setting-desc">±5 min window</div></div>
+            <div class="toggle on" onclick="this.classList.toggle('on')"></div>
+          </div>
+          <div class="setting-row">
+            <div><div class="setting-label">Off-hours monitoring</div><div class="setting-desc">22:00 – 06:00</div></div>
+            <div class="toggle on" onclick="this.classList.toggle('on')"></div>
+          </div>
+          <div class="setting-row">
+            <div><div class="setting-label">Category spike alerts</div><div class="setting-desc">200% rolling avg</div></div>
+            <div class="toggle" onclick="this.classList.toggle('on')"></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><div class="card-title">Notifications</div></div>
+          <div class="setting-row">
+            <div><div class="setting-label">Email reports</div><div class="setting-desc">Daily digest at 08:00</div></div>
+            <div class="toggle on" onclick="this.classList.toggle('on')"></div>
+          </div>
+          <div class="setting-row">
+            <div><div class="setting-label">SMS critical alerts</div><div class="setting-desc">High-risk transactions only</div></div>
+            <div class="toggle on" onclick="this.classList.toggle('on')"></div>
+          </div>
+          <div class="setting-row">
+            <div><div class="setting-label">Dashboard push</div><div class="setting-desc">Real-time anomaly alerts</div></div>
+            <div class="toggle on" onclick="this.classList.toggle('on')"></div>
+          </div>
+          <div class="setting-row">
+            <div><div class="setting-label">Audit trail export</div><div class="setting-desc">Auto-export weekly CSV</div></div>
+            <div class="toggle" onclick="this.classList.toggle('on')"></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><div class="card-title">Data & Retention</div></div>
+          <div class="setting-row">
+            <div><div class="setting-label">Retention period</div><div class="setting-desc">Audit logs kept for</div></div>
+            <select class="filter-select">
+              <option>7 Years</option><option>5 Years</option><option>3 Years</option>
+            </select>
+          </div>
+          <div class="setting-row">
+            <div><div class="setting-label">Auto-archive old data</div><div class="setting-desc">Move to cold storage</div></div>
+            <div class="toggle on" onclick="this.classList.toggle('on')"></div>
+          </div>
+          <div class="setting-row">
+            <div><div class="setting-label">Encrypt audit exports</div><div class="setting-desc">AES-256 encryption</div></div>
+            <div class="toggle on" onclick="this.classList.toggle('on')"></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><div class="card-title">Access Control</div></div>
+          <div class="setting-row">
+            <div><div class="setting-label">Two-factor auth</div><div class="setting-desc">All auditor accounts</div></div>
+            <div class="toggle on" onclick="this.classList.toggle('on')"></div>
+          </div>
+          <div class="setting-row">
+            <div><div class="setting-label">Session timeout</div><div class="setting-desc">Auto-logout after</div></div>
+            <select class="filter-select"><option>30 mins</option><option>1 hour</option><option>4 hours</option></select>
+          </div>
+          <div class="setting-row">
+            <div><div class="setting-label">IP whitelist</div><div class="setting-desc">Restrict to office network</div></div>
+            <div class="toggle" onclick="this.classList.toggle('on')"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /main-wrap -->
+
+<script>
+// ─── NAV ──────────────────────────────────────────────
+const titles = {
+  dashboard: 'Dashboard <span>Overview · Apr 2026</span>',
+  transactions: 'Transactions <span>All Ledger Entries</span>',
+  risk: 'Risk Management <span>Scoring & Analysis</span>',
+  reports: 'Audit Reports <span>Q1 2026 Findings</span>',
+  settings: 'Settings <span>Configuration</span>',
+};
+function navigate(id, el) {
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('sec-' + id).classList.add('active');
+  document.getElementById('page-title').innerHTML = titles[id];
+}
+
+// ─── CHARTS ───────────────────────────────────────────
+const COLORS = {
+  blue: '#3b82f6', green: '#06d6a0', amber: '#f59e0b',
+  red: '#ef4444', purple: '#a78bfa', pink: '#f472b6', cyan: '#22d3ee'
+};
+
+const chartDefaults = {
+  font: { family: 'DM Sans' },
+  color: '#7b90bb',
+};
+Chart.defaults.font.family = 'DM Sans';
+Chart.defaults.color = '#7b90bb';
+
+// Bar Chart
+new Chart(document.getElementById('barChart'), {
+  type: 'bar',
+  data: {
+    labels: ['Produce','Dairy','Bakery','Beverages','Frozen','Meat','Snacks','Personal Care'],
+    datasets: [{
+      label: 'Sales (₹)',
+      data: [820000, 640000, 390000, 710000, 450000, 950000, 510000, 280000],
+      backgroundColor: [
+        'rgba(59,130,246,0.7)','rgba(6,214,160,0.7)','rgba(245,158,11,0.7)',
+        'rgba(34,211,238,0.7)','rgba(167,139,250,0.7)','rgba(239,68,68,0.7)',
+        'rgba(244,114,182,0.7)','rgba(99,102,241,0.7)'
+      ],
+      borderRadius: 6, borderSkipped: false,
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { grid: { color: 'rgba(99,155,255,0.06)' }, ticks: { font: { size: 11 } } },
+      y: { grid: { color: 'rgba(99,155,255,0.06)' }, ticks: { callback: v => '₹'+v/100000+'L' } }
+    }
+  }
+});
+
+// Doughnut
+new Chart(document.getElementById('doughnutChart'), {
+  type: 'doughnut',
+  data: {
+    labels: ['Card','UPI','Cash','Wallet'],
+    datasets: [{
+      data: [42, 31, 18, 9],
+      backgroundColor: [COLORS.blue, COLORS.green, COLORS.amber, COLORS.purple],
+      borderWidth: 2, borderColor: '#111d35', hoverOffset: 8
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    cutout: '68%',
+    plugins: {
+      legend: { position: 'bottom', labels: { padding: 12, font: { size: 11 } } }
+    }
+  }
+});
+
+// Risk Chart (Polar)
+new Chart(document.getElementById('riskChart'), {
+  type: 'polarArea',
+  data: {
+    labels: ['High','Medium','Low','Duplicate','Off-hours'],
+    datasets: [{
+      data: [34, 87, 215, 7, 12],
+      backgroundColor: [
+        'rgba(239,68,68,0.6)','rgba(245,158,11,0.6)',
+        'rgba(6,214,160,0.5)','rgba(167,139,250,0.6)','rgba(59,130,246,0.6)'
+      ],
+      borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)'
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { position: 'bottom', labels: { padding: 10, font: { size: 11 } } } },
+    scales: { r: { grid: { color: 'rgba(99,155,255,0.08)' }, ticks: { display: false } } }
+  }
+});
+
+// Line Chart
+const days = Array.from({length:30},(_,i)=>`Apr ${i+1}`);
+const sales = [41,38,52,48,55,62,59,70,67,73,68,75,72,80,77,85,82,90,88,94,91,98,95,102,99,108,105,112,109,115].map(v=>v*1000);
+new Chart(document.getElementById('lineChart'), {
+  type: 'line',
+  data: {
+    labels: days,
+    datasets: [{
+      label: 'Daily Sales',
+      data: sales,
+      borderColor: COLORS.blue,
+      backgroundColor: 'rgba(59,130,246,0.08)',
+      borderWidth: 2, fill: true, tension: 0.4,
+      pointRadius: 0, pointHoverRadius: 5,
+      pointHoverBackgroundColor: COLORS.blue
+    },{
+      label: 'Anomalies',
+      data: days.map((_,i) => [4,12,19,27].includes(i) ? sales[i] : null),
+      borderColor: COLORS.red,
+      backgroundColor: COLORS.red,
+      pointRadius: 6, pointStyle: 'triangle',
+      showLine: false, pointHoverRadius: 8
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { position: 'bottom', labels: { font: { size: 11 } } } },
+    scales: {
+      x: { grid: { color: 'rgba(99,155,255,0.05)' }, ticks: { maxTicksLimit: 8, font: { size: 10 } } },
+      y: { grid: { color: 'rgba(99,155,255,0.05)' }, ticks: { callback: v => '₹'+v/1000+'K' } }
+    }
+  }
+});
+
+// Risk Dist Chart
+new Chart(document.getElementById('riskDistChart'), {
+  type: 'bar',
+  data: {
+    labels: ['0-20','21-40','41-60','61-74','75-89','90-100'],
+    datasets: [{
+      label: 'Transactions',
+      data: [5120, 7240, 1840, 870, 212, 53, 20],
+      backgroundColor: [
+        'rgba(6,214,160,0.7)','rgba(6,214,160,0.6)',
+        'rgba(245,158,11,0.7)','rgba(245,158,11,0.6)',
+        'rgba(239,68,68,0.7)','rgba(239,68,68,0.8)'
+      ],
+      borderRadius: 6, borderSkipped: false
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { grid: { color: 'rgba(99,155,255,0.06)' }, title: { display: true, text: 'Risk Score Range', font: { size: 11 } } },
+      y: { grid: { color: 'rgba(99,155,255,0.06)' }, ticks: { callback: v => v >= 1000 ? v/1000+'K' : v } }
+    }
+  }
+});
+
+// ─── HEATMAP ──────────────────────────────────────────
+(function buildHeatmap() {
+  const area = document.getElementById('heatmapArea');
+  const days = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  const times = ['00','04','08','10','12','14','16','18','20','22'];
+  // header
+  let html = '<div style="display:grid;grid-template-columns:40px repeat(7,1fr);gap:4px;font-size:10px;color:var(--text-muted);margin-bottom:4px">';
+  html += '<div></div>';
+  days.forEach(d => html += `<div style="text-align:center">${d}</div>`);
+  html += '</div>';
+  // rows
+  times.forEach(t => {
+    html += `<div style="display:grid;grid-template-columns:40px repeat(7,1fr);gap:4px;margin-bottom:4px">`;
+    html += `<div style="font-size:10px;color:var(--text-muted);display:flex;align-items:center">${t}:00</div>`;
+    days.forEach(() => {
+      const v = Math.random();
+      let bg, color;
+      if(v > 0.85) { bg = 'rgba(239,68,68,0.75)'; color = '#fff'; }
+      else if(v > 0.65) { bg = 'rgba(245,158,11,0.6)'; color = '#fff'; }
+      else if(v > 0.4) { bg = 'rgba(59,130,246,0.35)'; color = 'var(--text-secondary)'; }
+      else { bg = 'rgba(59,130,246,0.08)'; color = 'var(--text-muted)'; }
+      html += `<div style="background:${bg};border-radius:5px;height:24px;cursor:default;transition:transform 0.15s" onmouseenter="this.style.transform='scale(1.15)'" onmouseleave="this.style.transform='scale(1)'"></div>`;
+    });
+    html += '</div>';
+  });
+  html += '<div style="display:flex;gap:12px;margin-top:10px;font-size:11px;color:var(--text-muted)">';
+  html += '<span><span style="display:inline-block;width:10px;height:10px;background:rgba(239,68,68,0.75);border-radius:2px;margin-right:4px"></span>High</span>';
+  html += '<span><span style="display:inline-block;width:10px;height:10px;background:rgba(245,158,11,0.6);border-radius:2px;margin-right:4px"></span>Med</span>';
+  html += '<span><span style="display:inline-block;width:10px;height:10px;background:rgba(59,130,246,0.35);border-radius:2px;margin-right:4px"></span>Low</span>';
+  html += '<span><span style="display:inline-block;width:10px;height:10px;background:rgba(59,130,246,0.08);border-radius:2px;margin-right:4px"></span>Minimal</span>';
+  html += '</div>';
+  area.innerHTML = html;
+})();
+
+// ─── TRANSACTIONS ─────────────────────────────────────
+const products = [
+  ['Organic Milk 2L','Dairy',1280,'UPI','C-04','09:14',22,'approved'],
+  ['Wheat Bread Loaf','Bakery',85,'Cash','C-02','09:22',8,'approved'],
+  ['INVOICE-SUPPLIER-41','Produce',214500,'Card','MGR','10:01',91,'flagged'],
+  ['Mango Juice 1L x24','Beverages',4320,'Card','C-07','10:18',38,'review'],
+  ['Chicken Breast 1kg','Meat',420,'UPI','C-03','10:45',11,'approved'],
+  ['Organic Milk 2L','Dairy',1280,'UPI','C-04','10:49',72,'flagged'],
+  ['Sparkling Water x6','Beverages',540,'Wallet','C-01','11:02',14,'approved'],
+  ['Frozen Pizza x3','Frozen',1350,'Card','C-06','11:30',19,'approved'],
+  ['Staff Canteen Bulk','Internal',52400,'Cash','C-00','23:55',85,'flagged'],
+  ['Almond Butter 500g','Organic',680,'UPI','C-05','12:15',7,'approved'],
+  ['Detergent Refill 2L','Personal Care',390,'Card','C-02','12:40',12,'approved'],
+  ['Bulk Spice Order','Dry Goods',18400,'UPI','C-08','13:01',61,'flagged'],
+  ['Salmon Fillet 500g','Meat',980,'Card','C-07','13:22',9,'approved'],
+  ['Energy Drink x12','Beverages',1560,'UPI','C-03','14:05',28,'review'],
+  ['Bulk Spice Order','Dry Goods',18400,'UPI','C-08','14:08',88,'flagged'],
+  ['Fresh Strawberries','Produce',360,'Cash','C-01','14:30',6,'approved'],
+  ['Baby Formula 900g','Dairy',2100,'Card','C-05','15:00',16,'approved'],
+  ['Loyalty Void Txn','POS','–','Card','C-09','22:10',78,'flagged'],
+];
+
+(function buildTable() {
+  const tb = document.getElementById('txn-tbody');
+  products.forEach((r,i) => {
+    const [prod,cat,amt,pay,cashier,time,score,status] = r;
+    const fmtAmt = typeof amt === 'number' ? '₹' + amt.toLocaleString('en-IN') : amt;
+    const scoreColor = score >= 75 ? 'var(--accent4)' : score >= 40 ? 'var(--accent3)' : 'var(--accent2)';
+    const sPill = status === 'approved'
+      ? '<span class="status-pill s-approved">✓ Approved</span>'
+      : status === 'flagged'
+      ? '<span class="status-pill s-flagged">⚑ Flagged</span>'
+      : '<span class="status-pill s-review">⏳ Review</span>';
+    const rowBg = status === 'flagged' ? 'background:rgba(239,68,68,0.04)' : '';
+    tb.innerHTML += `<tr style="${rowBg}">
+      <td style="color:var(--text-muted);font-family:'Syne',sans-serif;font-size:12px">TXN-${4380+i}</td>
+      <td>${prod}</td><td><span style="font-size:11px;padding:2px 8px;background:rgba(59,130,246,0.08);border-radius:4px;color:var(--accent)">${cat}</span></td>
+      <td style="font-weight:600;color:var(--text-primary)">${fmtAmt}</td>
+      <td>${pay}</td><td>${cashier}</td><td>${time}</td>
+      <td><span style="font-weight:700;color:${scoreColor}">${score}</span></td>
+      <td>${sPill}</td>
+    </tr>`;
+  });
+})();
+
+// ─── AUDIT FINDINGS ───────────────────────────────────
+const findings = [
+  { sev:'critical', id:'AUD-001', title:'Unauthorized Off-Hours Transactions Detected',
+    body:'14 transactions processed between 22:00–06:00 without manager override codes. Total exposure: ₹1,24,500. No dual-control authorization recorded in POS logs.',
+    rec:'Enforce mandatory manager approval codes for all transactions outside business hours. Review CCTV for the flagged windows.' },
+  { sev:'critical', id:'AUD-002', title:'Duplicate Invoice Payments — Supplier ID 41',
+    body:'Three identical invoices (INVOICE-SUP-41) processed within 72 hours totalling ₹6,43,500. ERP and POS records do not match. Potential duplicate payment or fraudulent entry.',
+    rec:'Freeze supplier account pending investigation. Implement duplicate-detection at the accounts-payable level with ±7-day matching window.' },
+  { sev:'critical', id:'AUD-003', title:'POS Void Bypass Without Authorization',
+    body:'Cashier C-09 voided 9 transactions post-shift using manager credential reuse. No secondary authorization captured. Voids represent ₹42,800 in potential revenue loss.',
+    rec:'Enforce one-time tokens for manager override. Audit all void transactions in Q1. Retrain cashier C-09 and investigate C-09 activity further.' },
+  { sev:'major', id:'AUD-004', title:'Card Payment Reconciliation Gap — ₹38,200',
+    body:'Settlement reports from payment gateway do not match POS daily totals for 11 of 30 days. Gap widens toward month-end suggesting systemic reconciliation failure.',
+    rec:'Engage payment gateway vendor to provide itemised MDR reports. Schedule daily automated reconciliation with alert on any gap >₹500.' },
+  { sev:'major', id:'AUD-005', title:'Staff Discount Overuse — Category: Personal Care',
+    body:'Staff discount applied 214 times in 30 days vs policy maximum of 60. Three employee IDs (E-12, E-19, E-33) account for 68% of usage. Estimated revenue impact ₹17,400.',
+    rec:'Cap staff discounts per employee per month in POS system. Trigger manager approval above 5 discounts/week per employee.' },
+  { sev:'major', id:'AUD-006', title:'Expired Products in Inventory — Frozen Category',
+    body:'Inventory audit found 37 SKUs with expiry dates predating scan date. Products scanned and billed to customers. Regulatory non-compliance risk.',
+    rec:'Enforce daily FEFO scan at checkout for frozen and dairy. Configure ERP to auto-quarantine SKUs within 3 days of expiry.' },
+  { sev:'minor', id:'AUD-007', title:'Inconsistent Price Override Logging',
+    body:'Price overrides lack mandatory reason codes in 28% of cases. This prevents audit traceability and may mask shrinkage.',
+    rec:'Make reason code a mandatory POS field before any price override is accepted.' },
+  { sev:'minor', id:'AUD-008', title:'Missing Cashier Shift Reconciliation Reports',
+    body:'7 shift closure reports missing for April. Reports are required for SOC-2 compliance and cash management accountability.',
+    rec:'Automate shift closure report generation at POS end-of-day. Escalate missing reports to store manager within 2 hours.' },
+];
+
+(function buildFindings() {
+  const list = document.getElementById('findings-list');
+  findings.forEach(f => {
+    const cls = f.sev === 'critical' ? 'finding-critical' : f.sev === 'major' ? 'finding-major' : 'finding-minor';
+    const badge = f.sev === 'critical' ? 'badge-red' : f.sev === 'major' ? 'badge-yellow' : 'badge-blue';
+    list.innerHTML += `
+    <div class="finding-card ${cls}">
+      <div class="finding-header">
+        <span class="finding-id">${f.id}</span>
+        <span class="finding-title">${f.title}</span>
+        <span class="card-badge ${badge}">${f.sev.toUpperCase()}</span>
+      </div>
+      <div class="finding-body">${f.body}</div>
+      <div class="finding-rec">${f.rec}</div>
+    </div>`;
+  });
+})();
+
+// ─── UTIL ─────────────────────────────────────────────
+function applyFilter() {
+  // Simulated: just flash a brief overlay to indicate filtering
+  document.querySelector('.content').style.opacity = '0.7';
+  setTimeout(() => document.querySelector('.content').style.opacity = '1', 300);
+}
+function refreshData() {
+  const btn = document.querySelector('.btn-refresh');
+  btn.textContent = '↻ Updating…';
+  btn.style.opacity = '0.7';
+  setTimeout(() => { btn.innerHTML = '↻ Refresh'; btn.style.opacity = '1'; }, 1200);
+}
+</script>
+</body>
+</html>
